@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ML Dashboard</title>
+
+<style>
+body{
+font-family: Arial;
+background:#f4f4f4;
+padding:40px;
+}
+
+.container{
+background:white;
+padding:30px;
+border-radius:10px;
+width:800px;
+margin:auto;
+box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+h1{
+text-align:center;
+}
+
+input,select,button{
+padding:10px;
+margin:10px 0;
+width:100%;
+}
+
+table{
+border-collapse:collapse;
+width:100%;
+margin-top:20px;
+}
+
+td,th{
+border:1px solid #ddd;
+padding:8px;
+}
+
+button{
+background:#4CAF50;
+color:white;
+border:none;
+cursor:pointer;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Machine Learning Dashboard</h1>
+
+<input type="file" id="csvFile" accept=".csv">
+
+<select id="problemType">
+<option value="classification">Classification</option>
+<option value="regression">Regression</option>
+</select>
+
+<label>Target Column</label>
+<select id="target"></select>
+
+<label>Features</label>
+<select id="features" multiple></select>
+
+<button onclick="runModel()">Evaluate Model</button>
+
+<h3>Dataset Preview</h3>
+<div id="table"></div>
+
+<h3>Result</h3>
+<pre id="result"></pre>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+
+<script>
+
+let dataset = []
+
+document.getElementById("csvFile").addEventListener("change",function(e){
+
+let file = e.target.files[0]
+
+Papa.parse(file,{
+header:true,
+skipEmptyLines:true,
+complete:function(results){
+
+dataset = results.data
+
+showTable(dataset)
+loadColumns(dataset)
+
+}
+})
+
+})
+
+function showTable(data){
+
+let html="<table><tr>"
+
+Object.keys(data[0]).forEach(col=>{
+html += "<th>"+col+"</th>"
+})
+
+html+="</tr>"
+
+for(let i=0;i<5;i++){
+
+html+="<tr>"
+
+Object.values(data[i]).forEach(val=>{
+html+="<td>"+val+"</td>"
+})
+
+html+="</tr>"
+}
+
+html+="</table>"
+
+document.getElementById("table").innerHTML=html
+}
+
+function loadColumns(data){
+
+let cols = Object.keys(data[0])
+
+let target = document.getElementById("target")
+let features = document.getElementById("features")
+
+target.innerHTML=""
+features.innerHTML=""
+
+cols.forEach(c=>{
+
+let option1 = document.createElement("option")
+option1.value=c
+option1.text=c
+target.appendChild(option1)
+
+let option2 = document.createElement("option")
+option2.value=c
+option2.text=c
+features.appendChild(option2)
+
+})
+
+}
+
+function runModel(){
+
+let payload = {
+
+data: dataset,
+target: document.getElementById("target").value,
+features: Array.from(document.getElementById("features").selectedOptions).map(o=>o.value),
+type: document.getElementById("problemType").value
+
+}
+
+fetch("/predict",{
+
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify(payload)
+
+})
+.then(res=>res.json())
+.then(data=>{
+
+document.getElementById("result").innerText = JSON.stringify(data,null,2)
+
+})
+
+}
+
+</script>
+
+</body>
+</html>
